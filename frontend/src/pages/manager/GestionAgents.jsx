@@ -100,18 +100,31 @@ export default function GestionAgents() {
 
   const assignerDirect = async () => {
     if (!selectedAgent || !assignItem) return toast.error('Sélectionnez un agent');
+    
+    const targetItem = assignItem;
+    const targetType = assignType;
+    const agentIdNum = parseInt(selectedAgent);
+    const selectedAgentObj = agents.find(a => a.id === agentIdNum);
+    const guichetName = selectedAgentObj?.guichet || 'Guichet Central';
+
     setAssigning(true);
     try {
-      const agentIdNum = parseInt(selectedAgent);
       await api.post('/taches', {
         agent_id: agentIdNum,
-        titre: assignType === 'ticket' ? `Traiter ticket ${assignItem.numero_ticket}` : `RDV Client: ${assignItem.client_nom}`,
+        titre: targetType === 'ticket' ? `Traiter ticket ${targetItem.numero_ticket}` : `RDV Client: ${targetItem.client_nom}`,
         description: `Traitement manuel assigné par le Manager.`,
-        priorite: 'haute'
+        priorite: 'haute',
+        ticket_id: targetType === 'ticket' ? targetItem.id : null,
+        rdv_id: targetType === 'rdv' ? targetItem.id : null
       });
       
-      const endpoint = assignType === 'ticket' ? `/tickets/${assignItem.id}/appeler` : `/rendezvous/${assignItem.id}/valider`;
-      await api.post(endpoint, null, { params: { guichet: agents.find(a => a.id === agentIdNum)?.guichet || 'Guichet Central' } });
+      const endpoint = targetType === 'ticket' ? `/tickets/${targetItem.id}/appeler` : `/rendezvous/${targetItem.id}/valider`;
+      await api.post(endpoint, null, { 
+        params: { 
+          guichet: guichetName,
+          agent_id: agentIdNum
+        } 
+      });
       
       toast.success('Assignation réussie !');
       setShowAssignModal(false);
@@ -119,14 +132,16 @@ export default function GestionAgents() {
       setAssignItem(null);
 
       // ✅ Suppression immédiate (optimiste) de l'item de la liste correspondante
-      if (assignType === 'rdv') {
-        setRdvs(prev => prev.filter(r => r.id !== assignItem.id));
-      } else if (assignType === 'ticket') {
-        setTickets(prev => prev.filter(t => t.id !== assignItem.id));
+      if (targetType === 'rdv') {
+        setRdvs(prev => prev.filter(r => r.id !== targetItem.id));
+      } else if (targetType === 'ticket') {
+        setTickets(prev => prev.filter(t => t.id !== targetItem.id));
       }
 
       // Rechargement en arrière-plan pour synchroniser
-      load();
+      setTimeout(() => {
+        load();
+      }, 500);
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Erreur lors de l\'assignation');
     } finally { setAssigning(false); }
@@ -163,7 +178,7 @@ export default function GestionAgents() {
     <Layout title="Gestion des agents">
       <div className="page-header">
         <div>
-          <h2 className="page-title">👥 Gestion des agents</h2>
+          <h2 className="page-title">Gestion des agents</h2>
           <p className="page-subtitle">Pilotez les ressources et les flux en temps réel</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -291,14 +306,14 @@ export default function GestionAgents() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{r.client_nom}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={10} /> {r.date_heure ? new Date(r.date_heure).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+                      <Clock size={10} /> {r.heure_rdv || '--:--'} {r.date_rdv ? `(${new Date(r.date_rdv).toLocaleDateString('fr-FR')})` : ''}
                     </div>
                   </div>
                   <button 
                     className="btn btn-ghost btn-xs text-purple-600 font-bold" 
                     onClick={() => { setAssignType('rdv'); setAssignItem(r); setShowAssignModal(true); }}
                   >
-                    Appeler
+                    Assigner
                   </button>
                 </div>
               ))}
@@ -328,7 +343,7 @@ export default function GestionAgents() {
           <div style={{ marginTop: 10, display: 'flex', gap: 12 }}>
             <button className="btn btn-secondary flex-1" onClick={() => setShowAssignModal(false)}>Annuler</button>
             <button className="btn btn-primary flex-1 font-bold" onClick={assignerDirect} disabled={assigning || !selectedAgent}>
-              {assigning ? 'Traitement...' : 'Appeler au guichet'}
+              {assigning ? 'Traitement...' : 'Confirmer'}
             </button>
           </div>
         </div>

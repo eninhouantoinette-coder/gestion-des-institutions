@@ -97,7 +97,7 @@ export default function Profil() {
   return (
     <Layout title="Mon Profil">
       <div className="page-header">
-        <h2 className="page-title">👤 Mon Profil</h2>
+        <h2 className="page-title">Mon Profil</h2>
         <p className="page-subtitle">Gérez vos informations personnelles et votre sécurité</p>
       </div>
 
@@ -320,4 +320,4 @@ export default function Profil() {
       </Modal>
     </Layout>
   );
-}
+}

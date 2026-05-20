@@ -14,7 +14,6 @@ const NAV_CONFIG = {
   ],
   agent: [
     { label: 'Tableau de bord', path: '/agent/dashboard' },
-    { label: "File d'attente",   path: '/agent/file' },
     { label: 'Mes tâches',       path: '/agent/taches' },
     { label: 'Mon historique',   path: '/agent/historique' },
     { label: 'Mon profil',       path: '/agent/profil' },
@@ -66,7 +65,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🏦</div>
+        <div className="sidebar-logo-icon"></div>
         <div>
           <div className="sidebar-logo-text">BanqueQueue</div>
           <div className="sidebar-logo-sub">Système de gestion</div>
@@ -89,7 +88,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        <div className="sidebar-section-title">Navigation</div>
+        {user?.role !== 'client' && <div className="sidebar-section-title">Navigation</div>}
         {navItems.map(({ label, path, badge }) => (
           <button
             key={path}

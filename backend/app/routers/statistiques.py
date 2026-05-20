@@ -16,24 +16,28 @@ router = APIRouter(prefix="/statistiques", tags=["Statistiques"])
 
 
 def _stats_agence(db: Session, agence_id: int, date_debut: str, date_fin: str) -> dict:
+    date_fin_dt = f"{date_fin} 23:59:59"
     tickets_total = db.query(Ticket).filter(
         Ticket.agence_id == agence_id,
         Ticket.created_at >= date_debut,
-        Ticket.created_at <= date_fin,
+        Ticket.created_at <= date_fin_dt,
     ).count()
     tickets_termines = db.query(Ticket).filter(
         Ticket.agence_id == agence_id,
         Ticket.statut == StatutTicketEnum.termine,
         Ticket.created_at >= date_debut,
+        Ticket.created_at <= date_fin_dt,
     ).count()
     rdv_total = db.query(Rendezvous).filter(
         Rendezvous.agence_id == agence_id,
         Rendezvous.created_at >= date_debut,
+        Rendezvous.created_at <= date_fin_dt,
     ).count()
     rdv_annules = db.query(Rendezvous).filter(
         Rendezvous.agence_id == agence_id,
         Rendezvous.statut == StatutRdvEnum.annule,
         Rendezvous.created_at >= date_debut,
+        Rendezvous.created_at <= date_fin_dt,
     ).count()
     taux_annulation = round(rdv_annules / rdv_total * 100, 1) if rdv_total > 0 else 0
     return {

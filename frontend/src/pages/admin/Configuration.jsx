@@ -30,6 +30,27 @@ export default function Configuration() {
     } finally { setSaving(s => ({ ...s, [cle]: false })); }
   };
 
+  const purgeLogs = async () => {
+    if (!window.confirm('Supprimer les logs de plus de 30 jours ?')) return;
+    try {
+      const { data } = await api.delete('/admin/logs/purge');
+      toast.success(data.message);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Erreur');
+    }
+  };
+
+  const resetConfig = async () => {
+    if (!window.confirm('Réinitialiser toute la configuration ?')) return;
+    try {
+      const { data } = await api.post('/admin/config/reset');
+      toast.success(data.message);
+      reload();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Erreur');
+    }
+  };
+
   const reload = () => {
     setLoading(true);
     api.get('/admin/config').then(r => setConfig(r.data)).finally(() => setLoading(false));
@@ -124,11 +145,11 @@ export default function Configuration() {
         </p>
         <div style={{ display: 'flex', gap: 12 }}>
           <button className="btn btn-ghost btn-sm" style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#f87171', fontWeight: 600 }}
-            onClick={() => toast.error('Action désactivée en démonstration')}>
+            onClick={purgeLogs}>
             Purger les logs anciens
           </button>
           <button className="btn btn-ghost btn-sm" style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#f87171', fontWeight: 600 }}
-            onClick={() => toast.error('Action désactivée en démonstration')}>
+            onClick={resetConfig}>
             Réinitialiser la configuration
           </button>
         </div>

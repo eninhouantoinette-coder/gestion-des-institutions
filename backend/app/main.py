@@ -52,37 +52,31 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Endpoint de santé pour vérifier que l'API fonctionne
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "message": "API is running"}
-
-# ─── CORS ──────────────────────────────────────────────────────────────────
+# ─── CORS — doit être enregistré en premier, avant tout router ─────────────
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-# Détecter automatiquement toutes les origines possibles du frontend
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-    "http://192.168.56.1:3001",
-    "http://192.168.1.100:3001",
-    "http://10.0.0.2:3001",
-    # Ajouter plus d'origines locales possibles
     "http://localhost:3002",
     "http://127.0.0.1:3002",
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
+    "http://192.168.56.1:3000",
+    "http://192.168.1.100:3000",
 ]
+
+if FRONTEND_URL not in origins:
+    origins.append(FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Origines spécifiques (requis avec allow_credentials=True)
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,
 )
 
 # ─── Routers ───────────────────────────────────────────────────────────────

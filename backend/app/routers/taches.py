@@ -87,18 +87,15 @@ async def create_tache(
     if current_user.role == RoleEnum.manager and data.get('agence_id') != current_user.agence_id:
         raise HTTPException(status_code=403, detail="Vous ne pouvez créer des tâches que pour votre agence")
     t = Tache(**data)
+    # Forcer le statut à "a_faire" lors de la création par le manager
+    t.statut = StatutTacheEnum.a_faire
     db.add(t)
     db.commit()
     db.refresh(t)
     
-    # Mettre à jour le ticket ou RDV avec l'agent assigné
-    if t.agent_id:
-        _sync_ticket_with_agent(db, t.ticket_id, t.agent_id)
-        if t.rdv_id:
-            rdv = db.query(Rendezvous).filter(Rendezvous.id == t.rdv_id).first()
-            if rdv:
-                rdv.agent_id = t.agent_id
-                db.commit()
+    # NE PAS synchroniser avec le ticket lors de la création
+    # pour éviter que la tâche passe automatiquement à "en_cours"
+    # Le ticket sera synchronisé uniquement quand l'agent change le statut de la tâche
     
     return t
 
@@ -111,6 +108,66 @@ def _sync_ticket_with_agent(db: Session, ticket_id: Optional[int], agent_id: Opt
     if ticket and agent:
         ticket.agent_id = agent.id
         ticket.guichet = agent.guichet
+        db.commit()
+
+
+def _sync_task_with_ticket_status(db: Session, ticket_id: Optional[int], ticket_statut: str):
+    """Synchronise le statut de la tâche associée quand le statut du ticket change."""
+    if not ticket_id:
+        return
+    from app.models import StatutTacheEnum, StatutTicketEnum
+    from datetime import datetime, timedelta
+    
+    # Trouver la tâche associée à ce ticket
+    tache = db.query(Tache).filter(Tache.ticket_id == ticket_id).first()
+    if not tache:
+        return
+    
+    # Ignorer les tâches nouvellement créées (moins de 10 secondes)
+    # pour éviter que la synchronisation automatique change le statut lors de la création
+    if tache.created_at:
+        if datetime.now() - tache.created_at < timedelta(seconds=10):
+            return  # Ignorer la synchronisation pour les tâches nouvellement créées
+    
+    # Mapper les statuts ticket → tâche
+    statut_mapping = {
+        StatutTicketEnum.en_attente: StatutTacheEnum.a_faire,
+        StatutTicketEnum.appele: StatutTacheEnum.en_cours,
+        StatutTicketEnum.en_cours: StatutTacheEnum.en_cours,
+        StatutTicketEnum.termine: StatutTacheEnum.termine,
+        StatutTicketEnum.absent: StatutTacheEnum.a_faire,  # Remis en file
+        StatutTicketEnum.annule: StatutTacheEnum.annule,
+    }
+    
+    new_statut = statut_mapping.get(ticket_statut)
+    if new_statut and tache.statut != new_statut:
+        tache.statut = new_statut
+        db.commit()
+
+
+def _sync_ticket_with_task_status(db: Session, tache_id: int, tache_statut: str):
+    """Synchronise le statut du ticket associé quand le statut de la tâche change."""
+    from app.models import StatutTacheEnum, StatutTicketEnum
+    
+    tache = db.query(Tache).filter(Tache.id == tache_id).first()
+    if not tache or not tache.ticket_id:
+        return
+    
+    ticket = db.query(Ticket).filter(Ticket.id == tache.ticket_id).first()
+    if not ticket:
+        return
+    
+    # Mapper les statuts tâche → ticket
+    statut_mapping = {
+        StatutTacheEnum.a_faire: StatutTicketEnum.en_attente,
+        StatutTacheEnum.en_cours: StatutTicketEnum.en_cours,
+        StatutTacheEnum.termine: StatutTicketEnum.termine,
+        StatutTacheEnum.annule: StatutTicketEnum.annule,
+    }
+    
+    new_statut = statut_mapping.get(tache_statut)
+    if new_statut and ticket.statut != new_statut:
+        ticket.statut = new_statut
         db.commit()
 
 
@@ -131,6 +188,11 @@ async def update_tache(
         raise HTTPException(status_code=403, detail="Accès interdit - Tâche d'une autre agence")
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(t, field, value)
+        
+    if body.statut:
+        from app.utils.sync_helper import sync_ticket_or_rdv_from_task_status
+        sync_ticket_or_rdv_from_task_status(db, t, body.statut)
+        
     db.commit()
     db.refresh(t)
 
@@ -159,6 +221,10 @@ async def update_statut(
     t.statut = body.statut
     db.commit()
     db.refresh(t)
+    
+    # Synchroniser le ticket associé
+    _sync_ticket_with_task_status(db, tache_id, body.statut)
+    
     return t
 
 

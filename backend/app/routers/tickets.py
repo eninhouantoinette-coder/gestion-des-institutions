@@ -21,6 +21,8 @@ async def list_tickets(
     statut: Optional[str] = None,
     agent_id: Optional[int] = None,
     date: Optional[str] = None,
+    date_debut: Optional[str] = None,
+    date_fin: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -62,6 +64,10 @@ async def list_tickets(
     if date:
         from sqlalchemy import func
         query = query.filter(func.date(Ticket.created_at) == date)
+    if date_debut:
+        query = query.filter(Ticket.created_at >= date_debut)
+    if date_fin:
+        query = query.filter(Ticket.created_at <= f"{date_fin} 23:59:59")
     
     tickets = query.order_by(Ticket.created_at.desc()).all()
 
@@ -242,6 +248,10 @@ async def appeler_suivant_client(
         ticket.statut = StatutTicketEnum.en_cours
         db.commit()
         db.refresh(ticket)
+        
+        # Synchroniser la tâche associée
+        from app.routers.taches import _sync_task_with_ticket_status
+        _sync_task_with_ticket_status(db, ticket.id, StatutTicketEnum.en_cours)
 
     # Récupérer les infos pour la notification
     guichet_info = ticket.guichet if ticket.guichet else "guichet"
@@ -365,6 +375,10 @@ async def appeler_ticket_specifique(
 
     db.commit()
     db.refresh(ticket)
+    
+    # Synchroniser la tâche associée
+    from app.routers.taches import _sync_task_with_ticket_status
+    _sync_task_with_ticket_status(db, ticket.id, StatutTicketEnum.en_cours)
 
     # Notification WebSocket
     await manager.send_to_channel(f"file/{ticket.agence_id}", "ticket_appele", {
@@ -399,6 +413,7 @@ async def update_statut(
     current_user: User = Depends(get_current_user),
 ):
     from app.models import StatutTicketEnum
+    from app.routers.taches import _sync_task_with_ticket_status
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket introuvable")
@@ -434,6 +449,9 @@ async def update_statut(
     
     db.commit()
     db.refresh(ticket)
+    
+    # Synchroniser la tâche associée
+    _sync_task_with_ticket_status(db, ticket_id, body.statut)
     
     # Si le ticket est terminé, notifier le client pour qu'il disparaisse de son écran
     if body.statut == StatutTicketEnum.termine and ticket.client_id:
@@ -487,6 +505,10 @@ async def marquer_absent(
     
     db.commit()
     db.refresh(ticket)
+    
+    # Synchroniser la tâche associée
+    from app.routers.taches import _sync_task_with_ticket_status
+    _sync_task_with_ticket_status(db, ticket_id, StatutTicketEnum.absent)
     
     # Notifier le client
     if ticket.client_id:

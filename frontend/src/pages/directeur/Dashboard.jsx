@@ -149,7 +149,7 @@ export default function DirecteurDashboard() {
           <SectionCard title="Performance par agence">
             <div style={{ height: 350, marginTop: 24 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={statsAgences.slice(0, 5)}>
+                <BarChart data={[...statsAgences].sort((a, b) => b.tickets_traites - a.tickets_traites)}>
                   <XAxis dataKey="agence_nom" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} />

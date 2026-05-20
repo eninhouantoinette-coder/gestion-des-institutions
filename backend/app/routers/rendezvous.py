@@ -148,8 +148,8 @@ async def valider_rendezvous(
     if current_user.role == RoleEnum.client and rdv.client_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès interdit")
     
-    # Mettre à jour le statut
-    rdv.statut = "confirme"
+    # Mettre à jour le statut en 'termine' (ou 'en_cours') pour qu'il sorte de la file active
+    rdv.statut = "termine"
     db.commit()
     db.refresh(rdv)
     

@@ -18,7 +18,6 @@ const Historique        = lazy(() => import('../pages/client/Historique'));
 
 // Agent
 const AgentDashboard    = lazy(() => import('../pages/agent/Dashboard'));
-const FileAttente       = lazy(() => import('../pages/agent/FileAttente'));
 const MesTaches         = lazy(() => import('../pages/agent/MesTaches'));
 const AgentProfil       = lazy(() => import('../pages/agent/Profil'));
 const AgentHistorique   = lazy(() => import('../pages/agent/Historique'));
@@ -81,7 +80,6 @@ export default function AppRoutes() {
 
         {/* Agent */}
         <Route path="/agent/dashboard"    element={<PrivateRoute roles={['agent']}><AgentDashboard /></PrivateRoute>} />
-        <Route path="/agent/file"         element={<PrivateRoute roles={['agent']}><FileAttente /></PrivateRoute>} />
         <Route path="/agent/taches"       element={<PrivateRoute roles={['agent']}><MesTaches /></PrivateRoute>} />
         <Route path="/agent/profil"       element={<PrivateRoute roles={['agent']}><AgentProfil /></PrivateRoute>} />
         <Route path="/agent/historique"   element={<PrivateRoute roles={['agent']}><AgentHistorique /></PrivateRoute>} />

@@ -23,7 +23,20 @@ export default function ManagerStats() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/statistiques/agence/${user?.agence_id || 1}`);
+      const today = new Date();
+      let days = 30;
+      if (periode === 'semaine') days = 7;
+      else if (periode === 'trimestre') days = 90;
+
+      const debutDate = new Date();
+      debutDate.setDate(today.getDate() - days);
+
+      const date_debut = debutDate.toISOString().split('T')[0];
+      const date_fin = today.toISOString().split('T')[0];
+
+      const { data } = await api.get(`/statistiques/agence/${user?.agence_id || 1}`, {
+        params: { date_debut, date_fin }
+      });
       setStats(data);
     } catch (err) {
       console.error('Error loading stats', err);

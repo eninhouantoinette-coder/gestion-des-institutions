@@ -27,10 +27,22 @@ export default function RapportsManager() {
     setLoading(true);
     try {
       const agenceId = user?.agence_id || 1;
+      const today = new Date();
+      let days = 30;
+      if (periode === '7j') days = 7;
+      else if (periode === '3m') days = 90;
+      else if (periode === '1a') days = 365;
+
+      const debutDate = new Date();
+      debutDate.setDate(today.getDate() - days);
+
+      const date_debut = debutDate.toISOString().split('T')[0];
+      const date_fin = today.toISOString().split('T')[0];
+
       const [statsRes, agentsRes, ticketsRes] = await Promise.all([
-        api.get(`/statistiques/agence/${agenceId}`),
+        api.get(`/statistiques/agence/${agenceId}`, { params: { date_debut, date_fin } }),
         api.get('/users', { params: { role: 'agent', agence_id: agenceId, per_page: 50 } }),
-        api.get('/tickets', { params: { agence_id: agenceId, per_page: 500 } })
+        api.get('/tickets', { params: { agence_id: agenceId, per_page: 500, date_debut, date_fin } })
       ]);
       setStats(statsRes.data);
       setAgents(agentsRes.data?.items || []);
@@ -146,7 +158,12 @@ export default function RapportsManager() {
             </div>
             <div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Taux de Traitement</div>
-              <div style={{ fontSize: 26, fontWeight: 900 }}>{stats?.taux_traitement || 92}<span style={{ fontSize: 14 }}>%</span></div>
+              <div style={{ fontSize: 26, fontWeight: 900 }}>
+                {stats?.total_clients > 0 
+                  ? Math.round((stats.tickets_termines / stats.total_clients) * 100) 
+                  : 92}
+                <span style={{ fontSize: 14 }}>%</span>
+              </div>
               <div style={{ fontSize: 11, color: '#10b981', display: 'flex', alignItems: 'center', gap: 2 }}>
                 <ArrowUp size={10} /> 4.5% <span style={{ color: 'var(--text-muted)' }}>efficiency</span>
               </div>

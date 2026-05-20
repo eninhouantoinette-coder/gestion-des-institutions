@@ -32,13 +32,13 @@ def predire_affluence(db: Session, agence_id: int, date_cible: Optional[str] = N
 
     # Logique réelle : Moyenne des tickets sur le même jour de la semaine (4 dernières semaines)
     target_weekday = d.weekday()
-    
+
     # Calculer les 4 dates correspondantes dans le passé
     past_dates = [(d - timedelta(weeks=i)).strftime("%Y-%m-%d") for i in range(1, 5)]
-    
+
     total_past_tickets = 0
     valid_days = 0
-    
+
     for pd in past_dates:
         count = db.query(Ticket).filter(
             Ticket.agence_id == agence_id,
@@ -47,7 +47,9 @@ def predire_affluence(db: Session, agence_id: int, date_cible: Optional[str] = N
         if count > 0: # On ne compte que les jours où il y a eu de l'activité
             total_past_tickets += count
             valid_days += 1
-            
+
+    print(f"[DEBUG] Agence {agence_id}: total_past_tickets={total_past_tickets}, valid_days={valid_days}")
+
     # Moyenne ou estimation par défaut si pas d'historique (ex: script de peuplement)
     if valid_days > 0:
         estimation = round(total_past_tickets / valid_days)
@@ -81,24 +83,24 @@ def predire_affluence(db: Session, agence_id: int, date_cible: Optional[str] = N
 def predire_charge_agents(db: Session, agence_id: int) -> dict:
     """Prédit la charge réelle actuelle basée sur la file d'attente vs agents dispo."""
     from app.models import StatutAgentEnum
-    
+
     # 1. Nombre de clients en attente
     attente_count = db.query(Ticket).filter(
         Ticket.agence_id == agence_id,
         Ticket.statut == StatutTicketEnum.en_attente
     ).count()
-    
-    # 2. Nombre d'agents disponibles (non en réserve)
+
+    # 2. Nombre d'agents disponibles (tous les agents de l'agence)
     agents_dispo = db.query(User).filter(
         User.agence_id == agence_id,
-        User.role == "agent",
-        User.agent_status != StatutAgentEnum.en_reserve
+        User.role == "agent"
     ).count()
-    
+
+    print(f"[DEBUG] Agence {agence_id}: tickets_en_attente={attente_count}, agents_dispo={agents_dispo}")
+
     if agents_dispo == 0:
-        # Si aucun agent disponible, calculer la charge basée sur le nombre de clients
-        # 1 agent peut gérer 5 clients, donc charge = clients_en_attente / 5
-        charge = min(1.0, attente_count / 5.0)
+        # Si aucun agent disponible, charge basée sur hypothèse de 3 agents minimum
+        charge = min(1.0, attente_count / 15.0)
     else:
         # Un ratio de 5 clients par agent est considéré comme une charge de 100%
         charge = min(1.0, attente_count / (agents_dispo * 5))

@@ -113,3 +113,38 @@ async def update_config(
         db.add(config)
     db.commit()
     return {"cle": cle, "valeur": valeur}
+
+
+@router.delete("/logs/purge")
+async def purge_logs(
+    days: int = Query(30, ge=1, description="Nombre de jours à conserver"),
+    db: Session = Depends(get_db),
+    _: User = Depends(_require_admin),
+):
+    from datetime import timedelta
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    deleted = db.query(Log).filter(Log.created_at < cutoff).delete()
+    db.commit()
+    return {"deleted": deleted, "message": f"{deleted} logs supprimés"}
+
+
+@router.post("/config/reset")
+async def reset_config(
+    db: Session = Depends(get_db),
+    _: User = Depends(_require_admin),
+):
+    db.query(SystemConfig).delete()
+    
+    default_configs = {
+        "seuil_file_attente": "20",
+        "duree_session_minutes": "30",
+        "notifications_email": "false",
+        "max_rdv_par_jour": "5",
+    }
+    
+    for cle, valeur in default_configs.items():
+        config = SystemConfig(cle=cle, valeur=valeur)
+        db.add(config)
+    
+    db.commit()
+    return {"message": "Configuration réinitialisée", "config": default_configs}

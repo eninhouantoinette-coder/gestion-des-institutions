@@ -41,23 +41,45 @@ export default function Predictions() {
     init();
   }, []);
 
+  // Recharger automatiquement quand l'agence ou le service change
+  useEffect(() => {
+    if (agenceId) {
+      chargerPredictions();
+    }
+  }, [agenceId, serviceId]);
+
+  // Rafraîchissement automatique toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (agenceId) chargerPredictions();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [agenceId, serviceId]);
+
   const chargerPredictions = async () => {
     if (!agenceId) return;
+    const agenceIdNum = parseInt(agenceId);
     setLoading(true);
     try {
       const [aff, ch] = await Promise.all([
-        api.get(`/predictions/affluence/${agenceId}`),
-        api.get(`/predictions/charge-agents/${agenceId}`),
+        api.get(`/predictions/affluence/${agenceIdNum}`),
+        api.get(`/predictions/charge-agents/${agenceIdNum}`),
       ]);
       setAffluence(aff.data);
       setCharge(ch.data);
+      
+      // Charger l'attente (service spécifique ou globale agence)
       if (serviceId) {
-        const att = await api.get(`/predictions/temps-attente/${serviceId}`, { params: { agence_id: agenceId } });
+        const att = await api.get(`/predictions/temps-attente/${serviceId}`, { params: { agence_id: agenceIdNum } });
         setAttente(att.data);
       } else {
-        setAttente(null);
+        // Estimer l'attente globale de l'agence basée sur les tickets en attente
+        const att = await api.get(`/tickets`, { params: { agence_id: agenceIdNum, statut: 'en_attente', per_page: 100 } });
+        const ticketsEnAttente = att.data?.length || att.data?.items?.length || 0;
+        setAttente({ temps_estime_minutes: ticketsEnAttente * 10 });
       }
     } catch (e) {
+      console.error('Erreur prédictions:', e);
       toast.error('Erreur lors du calcul des prédictions');
     } finally { 
       setLoading(false); 
@@ -175,7 +197,7 @@ export default function Predictions() {
           <div className="grid-12" style={{ gap: 24, marginBottom: 32 }}>
             <div style={{ gridColumn: 'span 6' }}>
               <SectionCard title="Cartographie des risques (Radar IA)">
-                <div style={{ height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ height: '350px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                       <PolarGrid stroke="var(--border-subtle)" />

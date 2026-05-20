@@ -34,7 +34,7 @@ export default function Notifications() {
     try {
       await api.put(`/notifications/${id}/lu`);
       setNotifications(prev => prev.map(n => 
-        n.id === id ? { ...n, lu: true } : n
+        n.id === id ? { ...n, statut: 'lue' } : n
       ));
     } catch (e) {
       toast.error('Erreur lors du marquage comme lu');
@@ -44,7 +44,7 @@ export default function Notifications() {
   const markAllAsRead = async () => {
     try {
       await api.put('/notifications/tout-lu');
-      setNotifications(prev => prev.map(n => ({ ...n, lu: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, statut: 'lue' })));
       toast.success('Toutes les notifications marquées comme lues');
     } catch (e) {
       toast.error('Erreur lors du marquage');
@@ -82,9 +82,12 @@ export default function Notifications() {
   };
 
   const filteredNotifications = notifications.filter(n => {
+    // Sécurité supplémentaire : s'assurer que c'est bien la notif de l'utilisateur
+    if (n.user_id && n.user_id !== user.id) return false;
+    
     if (filter === 'tous') return true;
-    if (filter === 'non_lues') return !n.lu;
-    if (filter === 'lues') return n.lu;
+    if (filter === 'non_lues') return n.statut === 'non_lue';
+    if (filter === 'lues') return n.statut === 'lue';
     return true;
   });
 
@@ -103,7 +106,7 @@ export default function Notifications() {
         <div>
           <h2 className="page-title">Notifications</h2>
           <p className="page-subtitle">
-            {notifications.filter(n => !n.lu).length} notification(s) non lue(s)
+            {notifications.filter(n => n.statut === 'non_lue').length} notification(s) non lue(s)
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -169,10 +172,10 @@ export default function Notifications() {
                   display: 'flex',
                   gap: 16,
                   padding: '16px',
-                  background: notif.lu ? 'var(--bg-card)' : 'var(--bg-elevated)',
+                  background: (notif.statut === 'lue') ? 'var(--bg-card)' : 'var(--bg-elevated)',
                   borderRadius: 12,
-                  border: `1px solid ${notif.lu ? 'var(--border-subtle)' : 'var(--primary-200)'}`,
-                  borderLeft: notif.lu ? 'none' : '4px solid var(--primary-500)',
+                  border: `1px solid ${(notif.statut === 'lue') ? 'var(--border-subtle)' : 'var(--primary-200)'}`,
+                  borderLeft: (notif.statut === 'lue') ? 'none' : '4px solid var(--primary-500)',
                   transition: 'all 0.2s'
                 }}
               >
@@ -236,7 +239,7 @@ export default function Notifications() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {!notif.lu && (
+                  {(notif.statut === 'non_lue') && (
                     <button
                       onClick={() => markAsRead(notif.id)}
                       className="btn btn-ghost btn-sm"
