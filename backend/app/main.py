@@ -53,7 +53,7 @@ app = FastAPI(
 )
 
 # ─── CORS — doit être enregistré en premier, avant tout router ─────────────
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -65,6 +65,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://192.168.56.1:3000",
     "http://192.168.1.100:3000",
+
+    "https://gestiondesinstitutions.onrender.com",
 ]
 
 if FRONTEND_URL not in origins:
