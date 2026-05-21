@@ -114,7 +114,7 @@ class User(Base):
 class Agence(Base):
     __tablename__ = "agences"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nom = Column(String(150), nullable=False)
     adresse = Column(Text)
     capacite = Column(Integer, default=50)
@@ -135,7 +135,7 @@ class Agence(Base):
 class Service(Base):
     __tablename__ = "services"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nom = Column(String(150), nullable=False)
     description = Column(Text)
     duree_moyenne = Column(Integer, default=15)  # minutes
@@ -152,7 +152,7 @@ class Service(Base):
 class Creneau(Base):
     __tablename__ = "creneaux"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=False)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=False)
     date = Column(String(20), nullable=False)          # YYYY-MM-DD
@@ -171,7 +171,7 @@ class Creneau(Base):
 class Rendezvous(Base):
     __tablename__ = "rendezvous"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=False)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=False)
@@ -192,7 +192,7 @@ class Rendezvous(Base):
 class Ticket(Base):
     __tablename__ = "tickets"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=False)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=False)
@@ -221,7 +221,7 @@ class Ticket(Base):
 class Tache(Base):
     __tablename__ = "taches"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=False)  # Agence de la tâche
     agent_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     client_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -246,7 +246,7 @@ class Tache(Base):
 class Affectation(Base):
     __tablename__ = "affectations"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     tache_id = Column(Integer, ForeignKey("taches.id"), nullable=False)
     agent_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     score = Column(Float, default=0.0)
@@ -260,7 +260,7 @@ class Affectation(Base):
 class Alerte(Base):
     __tablename__ = "alertes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     type = Column(String(50), nullable=False)
     message = Column(Text, nullable=False)
     niveau = Column(Enum(NiveauAlerteEnum), default=NiveauAlerteEnum.faible)
@@ -277,7 +277,7 @@ class Alerte(Base):
 class Prediction(Base):
     __tablename__ = "predictions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=False)
     date_prevision = Column(String(20), nullable=False)
     niveau_affluence = Column(String(50))
@@ -292,7 +292,7 @@ class Prediction(Base):
 class Statistique(Base):
     __tablename__ = "statistiques"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     agence_id = Column(Integer, ForeignKey("agences.id"), nullable=True)
     agent_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     service_id = Column(Integer, ForeignKey("services.id"), nullable=True)
@@ -311,7 +311,7 @@ class Statistique(Base):
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message = Column(Text, nullable=False)
     type = Column(String(50), default="info")
@@ -325,7 +325,7 @@ class Notification(Base):
 class Log(Base):
     __tablename__ = "logs"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     action = Column(String(100), nullable=False)
     description = Column(Text)
@@ -339,7 +339,7 @@ class Log(Base):
 class SystemConfig(Base):
     __tablename__ = "system_config"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     cle = Column(String(100), unique=True, nullable=False)
     valeur = Column(Text)
     description = Column(Text)
